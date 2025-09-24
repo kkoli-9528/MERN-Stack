@@ -1,4 +1,4 @@
-import { model, Schema, Document, Types, HydratedDocument } from "mongoose";
+import { model, Schema, Document, Types } from "mongoose";
 import { User } from "./User";
 
 interface ITask extends Document {
@@ -24,6 +24,7 @@ const TaskSchema: Schema = new Schema(
     status: {
       type: String,
       enum: ["todo", "in-progress", "done", "pending"],
+      index: true,
       default: "pending",
     },
     priority: {

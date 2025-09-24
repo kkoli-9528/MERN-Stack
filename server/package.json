@@ -7,6 +7,7 @@
     "build": "tsc",
     "start": "node ./dist/index.js",
     "dev": "tsx watch src/index.ts",
+    "seed": "tsx src/test/mainSeed.ts",
     "test": "jest --verbose --watchAll"
   },
   "keywords": [],
@@ -26,6 +27,7 @@
     "zod": "^4.1.8"
   },
   "devDependencies": {
+    "@faker-js/faker": "^10.0.0",
     "@mongodb-js/mongodb-constants": "^0.14.0",
     "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.9",

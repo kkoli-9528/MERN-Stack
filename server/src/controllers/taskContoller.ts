@@ -61,20 +61,27 @@ const create = async (req: Request, res: Response) => {
 
 const read = async (req: Request, res: Response) => {
   try {
-    const id = req.params.id;
+    const { page = 1, limit = 10, status } = req.query;
 
-    const task = await Task.find({ userId: id });
+    const query: any = { userId: req.params.id };
 
-    res.status(200).json(
-      task.map((v) => ({
-        _id: v._id,
-        userId: v.userId,
-        title: v.title,
-        description: v.description,
-        status: v.status,
-        priority: v.priority,
-      }))
-    );
+    if (status) query.status = status;
+
+    const tasks = await Task.find(query)
+      .skip((Number(page) - 1) * Number(limit))
+      .limit(Number(limit))
+      .sort({ createdAt: -1 });
+
+    const count = await Task.countDocuments(query);
+
+    res.status(200).json({
+      data: tasks,
+      pagination: {
+        total: count,
+        page: Number(page),
+        pages: Math.ceil(count / Number(limit)),
+      },
+    });
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: "Internal Server Error" });
@@ -86,14 +93,6 @@ const update = async (req: Request, res: Response) => {
     const updateData = req.body;
 
     const taskId = req.params?.id;
-
-    // const token = req.cookies?.token;
-
-    // const decoded = jwt.verify(token, process.env.TOKEN_SECRET!);
-
-    // if (typeof decoded === "string" || !("id" in decoded)) {
-    //   return res.status(401).json({ error: "Invalid token" });
-    // }
 
     const userId = req.user;
 
