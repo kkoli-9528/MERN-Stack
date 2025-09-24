@@ -13,7 +13,8 @@ const register = async (req: Request, res: Response) => {
 
     const email_exists = await User.findOne({ email: email });
 
-    if (email_exists) return res.status(400).json({ error: "User not found" });
+    if (email_exists)
+      return res.status(400).json({ error: "Email already exists" });
 
     const user = await User.create({
       name,
@@ -47,7 +48,7 @@ const login = async (req: Request, res: Response) => {
 
     const user = await User.findOne({ email: email });
 
-    if (!user) return res.status(400).json({ error: "User already exists" });
+    if (!user) return res.status(400).json({ error: "User not found" });
 
     const isMatch = await bcrypt.compare(password, user.password);
 

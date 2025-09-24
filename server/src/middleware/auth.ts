@@ -5,7 +5,7 @@ import dotenv from "dotenv";
 dotenv.config({ quiet: true });
 
 const auth = async (req: Request, res: Response, next: NextFunction) => {
-  const token = req.headers.authorization?.split(" ")[1];
+  const token = req.cookies?.token;
   if (!token) res.status(403).json({ message: "Authentication required" });
 
   jwt.verify(String(token), process.env.TOKEN_SECRET!, (err) => {

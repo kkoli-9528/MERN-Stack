@@ -2,6 +2,10 @@ import { Request, Response } from "express";
 import { Task } from "../models/Task";
 import z from "zod";
 import { _parse } from "zod/v4/core";
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+
+dotenv.config({ quiet: true });
 
 const create = async (req: Request, res: Response) => {
   try {
@@ -36,14 +40,14 @@ const create = async (req: Request, res: Response) => {
       priority: data.priority,
     });
 
-    await task.save();
+    const savedData = await task.save();
 
     res.status(201).json({
-      userId: task.userId,
-      title: task.title,
-      description: task.description,
-      status: task.status,
-      priority: task.priority,
+      userId: savedData.userId,
+      title: savedData.title,
+      description: savedData.description,
+      status: savedData.status,
+      priority: savedData.priority,
     });
   } catch (error) {
     console.log(error);
@@ -62,13 +66,13 @@ const read = async (req: Request, res: Response) => {
     const task = await Task.find({ userId: id });
 
     res.status(200).json(
-      Object.entries(task).map(([, values]) => ({
-        _id: values._id,
-        userId: values.userId,
-        title: values.title,
-        description: values.description,
-        status: values.status,
-        priority: values.priority,
+      task.map((v) => ({
+        _id: v._id,
+        userId: v.userId,
+        title: v.title,
+        description: v.description,
+        status: v.status,
+        priority: v.priority,
       }))
     );
   } catch (error) {
@@ -80,6 +84,26 @@ const read = async (req: Request, res: Response) => {
 const update = async (req: Request, res: Response) => {
   try {
     const updateData = req.body;
+
+    const taskId = req.params?.id;
+
+    // const token = req.cookies?.token;
+
+    // const decoded = jwt.verify(token, process.env.TOKEN_SECRET!);
+
+    // if (typeof decoded === "string" || !("id" in decoded)) {
+    //   return res.status(401).json({ error: "Invalid token" });
+    // }
+
+    const userId = req.user;
+
+    if (!userId || typeof userId !== "object") {
+      return res.status(401).json({ error: "Invalid token" });
+    }
+
+    if (!userId.id) {
+      return res.status(401).json({ error: "Invalid token" });
+    }
 
     if (Object.keys(updateData).length === 0)
       return res.status(422).json({ error: "Require a field to update" });
@@ -95,7 +119,15 @@ const update = async (req: Request, res: Response) => {
 
     const validUpdateData = updateSchema.parse(updateData);
 
-    await Task.findByIdAndUpdate(req.params.id, validUpdateData, {
+    const task = await Task.findById(taskId);
+
+    if (task?.userId.toString() !== userId.id) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Not authorized" });
+    }
+
+    await Task.findByIdAndUpdate(taskId, validUpdateData, {
       new: true,
       runValidators: true,
     });
@@ -126,6 +158,26 @@ const remove = async (req: Request, res: Response) => {
     const id = req.params.id;
 
     const validId = Id.parse(id);
+
+    const task = await Task.findById(id);
+
+    const userId = req.user;
+
+    if (!userId || typeof userId !== "object") {
+      return res.status(401).json({ error: "Invalid token" });
+    }
+
+    if (!userId.id) {
+      return res.status(401).json({ error: "Invalid token" });
+    }
+
+    console.log("userId: ", userId);
+
+    if (task?.userId.toString() !== userId.id) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Not authorized" });
+    }
 
     const deleted = await Task.findByIdAndDelete(validId);
 
