@@ -11,7 +11,12 @@ const app = express();
 const PORT = process.env.PORT!;
 
 app.use(express.json());
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:5173", // frontend URL (Vite default)
+    credentials: true, // allows sending cookies
+  })
+);
 app.use(cookieParser());
 
 app.get("/health-check", (_, res: Response) => {

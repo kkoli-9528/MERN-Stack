@@ -9,13 +9,14 @@ dotenv.config({ quiet: true });
 
 const create = async (req: Request, res: Response) => {
   try {
-    const { userId, title, description, status, priority } = req.body;
+    const { title, description, status, priority } = req.body;
 
-    if (!userId || !title || !description || !status || !priority)
+    const userId = req.user?.id;
+
+    if (!title || !description || !status || !priority)
       return res.status(422).json({ error: "All fields required" });
 
-    const User = z.object({
-      userId: z.hex().regex(/^[a-fA-F0-9]{24}$/),
+    const TaskSchema = z.object({
       title: z.string().min(3),
       description: z.string().min(3),
       status: z.enum(["todo", "in-progress", "done", "pending"]),
@@ -23,21 +24,17 @@ const create = async (req: Request, res: Response) => {
     });
 
     const input = {
-      userId,
       title,
       description,
       status,
       priority,
     };
 
-    const data = User.parse(input);
+    const data = TaskSchema.parse(input);
 
     const task = new Task({
-      userId: data.userId,
-      title: data.title,
-      description: data.description,
-      status: data.status,
-      priority: data.priority,
+      userId: userId,
+      ...data,
     });
 
     const savedData = await task.save();
@@ -61,16 +58,22 @@ const create = async (req: Request, res: Response) => {
 
 const read = async (req: Request, res: Response) => {
   try {
-    const { page = 1, limit = 10, status } = req.query;
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+    } = req.query;
 
-    const query: any = { userId: req.params.id };
+    const query: any = { userId: req.user?.id };
 
     if (status) query.status = status;
 
     const tasks = await Task.find(query)
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit))
-      .sort({ createdAt: -1 });
+      .sort({ [String(sortBy)]: sortOrder === "asc" ? 1 : -1 });
 
     const count = await Task.countDocuments(query);
 
